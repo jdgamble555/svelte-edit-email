@@ -5,15 +5,28 @@ import {
     signOut,
     updateEmail,
     updateProfile,
+    reauthenticateWithPopup,
     type User
 } from "firebase/auth";
 import { readable, type Subscriber } from "svelte/store";
 import { auth } from "./firebase";
-import { useSharedStore } from "./use-shared";
+import { useSharedStore, useWritable } from "./use-shared";
 import { FirebaseError } from "firebase/app";
 
 export const loginWithGoogle = async () =>
-    await signInWithPopup(auth, new GoogleAuthProvider());
+    await signInWithPopup(
+        auth, new GoogleAuthProvider()
+    );
+
+export const reLoginWithGoogle = async () => {
+    if (auth.currentUser) {
+        await reauthenticateWithPopup(
+            auth.currentUser,
+            new GoogleAuthProvider()
+        );
+    }
+}
+
 export const logout = async () => await signOut(auth);
 
 const user = (defaultUser: UserType | null = null) =>
@@ -34,6 +47,7 @@ const user = (defaultUser: UserType | null = null) =>
 export const useUser = (defaultUser: UserType | null = null) =>
     useSharedStore('user', user, defaultUser);
 
+export const useRelogin = () => useWritable('relogin', false);
 
 export const updateProfileEmail = async (
     email: string
@@ -48,11 +62,6 @@ export const updateProfileEmail = async (
         await updateEmail(auth.currentUser, email);
     } catch (e) {
         if (e instanceof FirebaseError) {
-
-            if (e.code === 'auth/requires-recent-login') {
-                // handle sign in
-            }
-
             return {
                 error: e.message
             };
